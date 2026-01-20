@@ -22,13 +22,31 @@ type Order struct {
 	PaymentMethod string  `json:"payment_method"`
 }
 
+// PipelineResponse representa a resposta do endpoint /trigger
+type PipelineResponse struct {
+	Success   bool   `json:"success"`
+	Message   string `json:"message"`
+	Inserted  int    `json:"inserted"`
+	Total     int    `json:"total"`
+	Timestamp string `json:"timestamp"`
+}
+
+var db *sql.DB
+var dataSourceURL string
+var transformerURL string
+
 func main() {
 	fmt.Println("=== Pipeline de Dados iniciado ===")
 
 	// Obter URLs das variáveis de ambiente
-	dataSourceURL := os.Getenv("DATA_SOURCE_URL")
+	dataSourceURL = os.Getenv("DATA_SOURCE_URL")
 	if dataSourceURL == "" {
 		dataSourceURL = "http://data-source:3000"
+	}
+
+	transformerURL = os.Getenv("TRANSFORMER_URL")
+	if transformerURL == "" {
+		transformerURL = "http://transformer:8080/transform"
 	}
 
 	databaseURL := os.Getenv("DATABASE_URL")
@@ -36,7 +54,7 @@ func main() {
 		log.Fatal("DATABASE_URL não configurada")
 	}
 
-	// Adicionar sslmode=disable se não estiver presente (PostgreSQL local não usa SSL)
+	// Adicionar sslmode=disable se não estiver presente
 	if !strings.Contains(databaseURL, "sslmode") {
 		if strings.Contains(databaseURL, "?") {
 			databaseURL += "&sslmode=disable"
@@ -46,10 +64,12 @@ func main() {
 	}
 
 	fmt.Printf("Data Source URL: %s\n", dataSourceURL)
+	fmt.Printf("Transformer URL: %s\n", transformerURL)
 	fmt.Printf("Database URL: %s\n", databaseURL)
 
 	// Conectar ao PostgreSQL
-	db, err := sql.Open("postgres", databaseURL)
+	var err error
+	db, err = sql.Open("postgres", databaseURL)
 	if err != nil {
 		log.Fatalf("Erro ao conectar ao PostgreSQL: %v", err)
 	}
@@ -67,11 +87,72 @@ func main() {
 	}
 	fmt.Println("✅ Schema e tabela verificados/criados")
 
+	// Configurar rotas HTTP
+	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/trigger", triggerHandler)
+
+	// Iniciar servidor HTTP
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	fmt.Printf("\n🚀 Servidor HTTP iniciado na porta %s\n", port)
+	fmt.Println("Endpoints disponíveis:")
+	fmt.Println("  - GET  /health  - Health check")
+	fmt.Println("  - POST /trigger - Disparar ingestão de dados")
+
+	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+}
+
+func triggerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fmt.Println("\n=== Pipeline disparado via HTTP ===")
+
+	// Executar pipeline
+	inserted, total, err := runPipeline()
+
+	response := PipelineResponse{
+		Success:   err == nil,
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	if err != nil {
+		response.Message = fmt.Sprintf("Erro ao executar pipeline: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response.Message = "Pipeline executado com sucesso"
+	response.Inserted = inserted
+	response.Total = total
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func runPipeline() (int, int, error) {
 	// Buscar dados do Data Source
 	fmt.Println("\n📥 Buscando dados do Data Source...")
 	orders, err := fetchOrders(dataSourceURL)
 	if err != nil {
-		log.Fatalf("Erro ao buscar pedidos: %v", err)
+		return 0, 0, fmt.Errorf("erro ao buscar pedidos: %w", err)
 	}
 	fmt.Printf("✅ %d pedidos recebidos do Data Source\n", len(orders))
 
@@ -79,11 +160,23 @@ func main() {
 	fmt.Println("\n💾 Inserindo dados no PostgreSQL...")
 	inserted, err := insertOrders(db, orders)
 	if err != nil {
-		log.Fatalf("Erro ao inserir pedidos: %v", err)
+		return 0, len(orders), fmt.Errorf("erro ao inserir pedidos: %w", err)
 	}
 	fmt.Printf("✅ %d pedidos inseridos com sucesso\n", inserted)
 
+	// Chamar transformer para agregar dados
+	if inserted > 0 {
+		fmt.Println("\n🔄 Chamando transformer para agregar dados...")
+		if err := callTransformer(transformerURL); err != nil {
+			log.Printf("⚠️  Erro ao chamar transformer: %v", err)
+			// Não falhar o pipeline se o transformer falhar
+		} else {
+			fmt.Println("✅ Transformer executado com sucesso")
+		}
+	}
+
 	fmt.Println("\n=== Pipeline concluído com sucesso ===")
+	return inserted, len(orders), nil
 }
 
 // setupDatabase cria o schema raw_data e a tabela orders se não existirem
@@ -185,4 +278,23 @@ func insertOrders(db *sql.DB, orders []Order) (int, error) {
 	}
 
 	return inserted, nil
+}
+
+// callTransformer chama o serviço transformer via HTTP
+func callTransformer(url string) error {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Post(url, "application/json", nil)
+	if err != nil {
+		return fmt.Errorf("erro ao fazer requisição HTTP: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("status code não OK: %d", resp.StatusCode)
+	}
+
+	return nil
 }

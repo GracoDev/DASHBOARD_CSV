@@ -30,10 +30,10 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/analytics_db
+      - JWT_SECRET=minha-chave-secreta-jwt-super-segura
+      - PIPELINE_URL=http://pipeline:8080/trigger
     depends_on:
-      postgres:
-        condition: service_healthy
+      - pipeline
     networks:
       - analytics-network
 
@@ -47,6 +47,7 @@ services:
       - "8080:8080"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/analytics_db
+      - JWT_SECRET=minha-chave-secreta-jwt-super-segura
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,12 +73,17 @@ services:
       context: ./pipeline
       dockerfile: Dockerfile
     container_name: pipeline
+    ports:
+      - "8081:8080"
     environment:
       - DATA_SOURCE_URL=http://data-source:3000
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/analytics_db
+      - TRANSFORMER_URL=http://transformer:8080/transform
+      - PORT=8080
     depends_on:
       - data-source
       - postgres
+      - transformer
     networks:
       - analytics-network
 
@@ -87,8 +93,11 @@ services:
       context: ./transformer
       dockerfile: Dockerfile
     container_name: transformer
+    ports:
+      - "8082:8080"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/analytics_db
+      - PORT=8080
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,80 @@
+.metrics-cards {
+  margin-bottom: 40px;
+}
+
+.metrics-section {
+  margin-bottom: 40px;
+}
+
+.metrics-section h2 {
+  color: var(--dark-bg);
+  margin-bottom: 20px;
+  font-size: 1.25em;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 15px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.metric-card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 212, 126, 0.3);
+}
+
+.metric-card h3 {
+  color: var(--text-gray);
+  font-size: 0.85em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 2.2em;
+  font-weight: 800;
+  margin: 0;
+  color: var(--dark-bg);
+  letter-spacing: -1px;
+}
+
+/* Indicadores de status sutis */
+.metric-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  opacity: 0.8;
+}
+
+.revenue-approved::after, .orders-approved::after {
+  background-color: var(--primary-color);
+}
+
+.revenue-pending::after, .orders-pending::after {
+  background-color: #fbbf24;
+}
+
+.revenue-cancelled::after, .orders-cancelled::after {
+  background-color: #ef4444;
+}

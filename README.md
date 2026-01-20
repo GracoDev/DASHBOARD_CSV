@@ -150,12 +150,12 @@ docker compose ps
 - [x] **Estrutura de pastas** - Criada
 - [x] **docker-compose.yml** - Configurado com todos os serviços
 - [x] **Data Source Server** - ✅ Implementado e testado
-- [ ] **Pipeline** - Pendente
-- [ ] **Transformer** - Pendente
-- [ ] **Backend 1 (Auth)** - Pendente
-- [ ] **Backend 2 (Query API)** - Pendente
-- [ ] **Frontend** - Pendente
-- [ ] **PostgreSQL** - Schemas criados, tabelas pendentes
+- [x] **Pipeline** - ✅ Implementado (busca dados e insere no PostgreSQL)
+- [x] **Transformer** - ✅ Implementado (agrega dados e expõe API HTTP)
+- [x] **Backend 1 (Auth)** - ✅ Implementado (JWT, login, sync)
+- [x] **Backend 2 (Query API)** - ✅ Implementado (métricas, time-series, validação JWT)
+- [x] **Frontend** - ✅ Implementado (Dashboard React com gráficos e filtros)
+- [x] **PostgreSQL** - ✅ Schemas e tabelas criados automaticamente
 
 ## 🐛 Troubleshooting
 
@@ -172,13 +172,18 @@ docker compose ps
 docker compose logs <nome-do-servico>
 ```
 
-## 📚 Próximos Passos
+## 🔐 Segurança
 
-1. Implementar o **Pipeline** (Go) - Consumir dados do Data Source
-2. Implementar o **Transformer** (Python) - Agregar dados
-3. Implementar o **Backend 1** (Flask) - Autenticação
-4. Implementar o **Backend 2** (Go) - Query API
-5. Implementar o **Frontend** (React) - Dashboard
+- **Backend 1**: Autenticação JWT implementada
+- **Backend 2**: Validação de token JWT obrigatória para todas as rotas de API
+- **Credenciais padrão**: `admin` / `admin123` (altere em produção!)
+
+## 🔄 Fluxo de Dados
+
+1. **Data Source** → Serve dados do `orders.csv`
+2. **Pipeline** → Busca dados do Data Source e insere em `raw_data.orders`
+3. **Transformer** → Agrega dados de `raw_data.orders` para `aggregated.daily_metrics` (chamado automaticamente pelo pipeline)
+4. **Backend 2** → Consulta `aggregated.daily_metrics` e retorna métricas para o frontend
 
 ## 📞 Contato
 

@@ -1,0 +1,23 @@
+.revenue-chart {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 40px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.chart-container {
+  height: 450px;
+  position: relative;
+}
+
+.chart-placeholder {
+  background: #f9fafb;
+  padding: 60px;
+  border-radius: 12px;
+  text-align: center;
+  color: var(--text-gray);
+  font-size: 1.1em;
+  border: 2px dashed var(--border-color);
+}

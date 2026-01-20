@@ -1,6 +1,8 @@
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from flask import Flask, jsonify
+from flask_cors import CORS
 
 def get_database_connection():
     """Conecta ao PostgreSQL usando DATABASE_URL"""
@@ -105,9 +107,8 @@ def insert_aggregated_data(conn, aggregated_data):
         conn.commit()
         return inserted
 
-def main():
-    print("=== Serviço de Transformação de Dados iniciado ===")
-    
+def run_transformation():
+    """Executa a transformação de dados"""
     try:
         # Conectar ao PostgreSQL
         print("\n📡 Conectando ao PostgreSQL...")
@@ -131,10 +132,59 @@ def main():
         conn.close()
         
         print("\n=== Transformação concluída com sucesso ===")
+        return inserted
         
     except Exception as e:
         print(f"\n❌ Erro: {e}")
         raise
 
+# Criar aplicação Flask
+app = Flask(__name__)
+CORS(app)  # Habilitar CORS
+
+@app.route('/')
+def hello():
+    return {
+        'service': 'transformer',
+        'status': 'running',
+        'message': 'Serviço de Transformação de Dados'
+    }
+
+@app.route('/health')
+def health():
+    return {'status': 'healthy'}, 200
+
+@app.route('/transform', methods=['POST'])
+def transform():
+    """Endpoint HTTP para executar a transformação"""
+    try:
+        print("\n=== Transformação disparada via HTTP ===")
+        inserted = run_transformation()
+        return jsonify({
+            'success': True,
+            'message': 'Transformação executada com sucesso',
+            'inserted': inserted
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+def main():
+    """Função principal - executa transformação uma vez na inicialização"""
+    print("=== Serviço de Transformação de Dados iniciado ===")
+    try:
+        run_transformation()
+    except Exception as e:
+        print(f"\n❌ Erro: {e}")
+        raise
+
 if __name__ == '__main__':
-    main()
+    # Se executado diretamente (não via import), iniciar servidor HTTP
+    port = int(os.getenv('PORT', '8080'))
+    print(f"\n🚀 Servidor HTTP iniciado na porta {port}")
+    print("Endpoints disponíveis:")
+    print("  - GET  /health    - Health check")
+    print("  - POST /transform  - Executar transformação")
+    app.run(host='0.0.0.0', port=port, debug=False)

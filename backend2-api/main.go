@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	_ "github.com/lib/pq"
 )
 
@@ -52,15 +53,85 @@ type TimeSeriesPoint struct {
 	CancelledOrders  int     `json:"cancelled_orders"`
 }
 
+var jwtSecret string
+
 func main() {
+	// Obter JWT_SECRET da variável de ambiente (deve ser a mesma do backend1-auth)
+	jwtSecret = os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "minha-chave-secreta-jwt-super-segura" // Fallback para desenvolvimento
+		log.Println("⚠️  JWT_SECRET não configurada, usando valor padrão")
+	}
+
 	// Configurar rotas
-	http.HandleFunc("/", helloHandler)
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/api/metrics", metricsHandler)
-	http.HandleFunc("/api/metrics/time-series", timeSeriesHandler)
+	http.HandleFunc("/", corsMiddleware(helloHandler))
+	http.HandleFunc("/health", corsMiddleware(healthHandler))
+	http.HandleFunc("/api/metrics", corsMiddleware(verifyTokenMiddleware(metricsHandler)))
+	http.HandleFunc("/api/metrics/time-series", corsMiddleware(verifyTokenMiddleware(timeSeriesHandler)))
 
 	fmt.Println("Backend 2 API listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+// corsMiddleware adiciona headers CORS às respostas
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Permitir origem do frontend
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Responder a requisições OPTIONS (preflight)
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
+// verifyTokenMiddleware valida o token JWT antes de permitir acesso
+func verifyTokenMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Obter token do header Authorization
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, `{"error": "Token não fornecido"}`, http.StatusUnauthorized)
+			return
+		}
+
+		// Formato esperado: "Bearer <token>"
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			http.Error(w, `{"error": "Formato de token inválido. Use: Bearer <token>"}`, http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := parts[1]
+
+		// Verificar e decodificar o token
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			// Verificar algoritmo
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("método de assinatura inesperado: %v", token.Header["alg"])
+			}
+			return []byte(jwtSecret), nil
+		})
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error": "Token inválido: %v"}`, err), http.StatusUnauthorized)
+			return
+		}
+
+		if !token.Valid {
+			http.Error(w, `{"error": "Token inválido"}`, http.StatusUnauthorized)
+			return
+		}
+
+		// Token válido, continuar com a requisição
+		next(w, r)
+	}
 }
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {

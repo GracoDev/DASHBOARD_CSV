@@ -6,6 +6,7 @@ COPY main.go .
 
 RUN go mod init backend2-api && \
     go get github.com/lib/pq && \
+    go get github.com/golang-jwt/jwt/v5 && \
     go mod tidy && \
     go build -o main .
 
