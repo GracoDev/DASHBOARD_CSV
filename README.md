@@ -184,3 +184,4 @@ docker compose logs <nome-do-servico>
 
 Para dúvidas sobre o case, consulte a documentação original.
 
+

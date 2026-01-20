@@ -136,3 +136,4 @@ docker exec postgres psql -U postgres -d analytics_db -c "\dt raw_data.*"
 - Verifique se o PostgreSQL está rodando: `docker compose ps postgres`
 - Verifique a connection string no docker-compose.yml
 
+
