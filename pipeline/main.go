@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 	"time"
-	//_ "github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 // Order representa a estrutura de um pedido recebido da API
