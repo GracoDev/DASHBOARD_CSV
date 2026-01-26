@@ -110,7 +110,7 @@ function Dashboard() { // componente Dashboard que exibe os dados e filtros
           <div className="loading">Carregando dados...</div>
         ) : (
           <>
-            {metrics && <MetricsCards metrics={metrics} />} // passa os dados das métricas para o componente MetricsCards
+            {metrics && <MetricsCards metrics={metrics} />}
             {timeSeries && timeSeries.length > 0 && (
               <div className="chart-section">
                 <div className="chart-controls">
@@ -126,7 +126,7 @@ function Dashboard() { // componente Dashboard que exibe os dados e filtros
                     </select>
                   </label>
                 </div>
-                <RevenueChart data={timeSeries} viewMode={chartViewMode} /> // passa os dados da série temporal para o componente RevenueChart
+                <RevenueChart data={timeSeries} viewMode={chartViewMode} /> 
               </div>
             )}
           </>

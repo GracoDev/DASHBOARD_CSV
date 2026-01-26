@@ -117,10 +117,11 @@ function RevenueChart({ data, viewMode = 'revenue' }) {
     },
   };
 
+// exiibe o gráfico
   return (
     <div className="revenue-chart">
       <div className="chart-container">
-        <Line data={chartData} options={options} /> // exibe o gráfico
+        <Line data={chartData} options={options} />
       </div>
     </div>
   );
