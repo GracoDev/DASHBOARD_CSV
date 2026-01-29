@@ -58,6 +58,111 @@ Após sincronizar, você verá:
 - **Gráfico de séries temporais**: Evolução das métricas ao longo do tempo
 - **Filtros**: Data inicial, data final e método de pagamento
 
+## 🔧 Desenvolvimento e Teste Local
+
+Antes de fazer deploy, é recomendado testar suas alterações localmente usando Docker Compose.
+
+### Build e Teste de Serviços Individuais
+
+Para fazer build e testar um serviço específico:
+
+**Frontend:**
+```bash
+docker compose build frontend
+docker compose up frontend
+```
+
+**Backend 1 (Auth):**
+```bash
+docker compose build backend1-auth
+docker compose up backend1-auth
+```
+
+**Backend 2 (API):**
+```bash
+docker compose build backend2-api
+docker compose up backend2-api
+```
+
+**Data Source:**
+```bash
+docker compose build data-source
+docker compose up data-source
+```
+
+**Pipeline:**
+```bash
+docker compose build pipeline
+docker compose up pipeline
+```
+
+**Transformer:**
+```bash
+docker compose build transformer
+docker compose up transformer
+```
+
+### Build e Teste de Todos os Serviços
+
+Para fazer build e subir todos os serviços de uma vez:
+
+```bash
+docker compose build
+docker compose up
+```
+
+Ou em modo detached (background):
+
+```bash
+docker compose up --build -d
+```
+
+### Parar os Serviços
+
+Para parar todos os serviços:
+
+```bash
+docker compose down
+```
+
+Para parar um serviço específico:
+
+```bash
+docker compose stop frontend
+```
+
+### Ver Logs
+
+Para ver os logs de todos os serviços:
+
+```bash
+docker compose logs
+```
+
+Para ver logs de um serviço específico:
+
+```bash
+docker compose logs frontend
+docker compose logs backend1-auth
+docker compose logs backend2-api
+```
+
+### Fluxo de Trabalho Recomendado
+
+1. **Fazer alterações no código**
+2. **Testar localmente:**
+   ```bash
+   docker compose build frontend  # ou o serviço que você alterou
+   docker compose up frontend    # testar se está funcionando
+   ```
+3. **Verificar se está tudo OK** acessando `http://localhost:3001` (ou a porta do serviço)
+4. **Se estiver tudo certo, fazer deploy:**
+   ```bash
+   git add .
+   git commit -m "Descrição das mudanças"
+   git push  # Deploy automático acontece aqui
+   ```
+
 ## 🌐 URLs dos Serviços
 
 ### Frontend (Dashboard Principal)
