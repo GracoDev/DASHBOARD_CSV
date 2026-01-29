@@ -23,5 +23,6 @@ RUN npm install -g serve
 EXPOSE 3000
 
 # Comando para servir os arquivos estáticos
-CMD ["serve", "-s", "build", "-l", "3000"]
+# IMPORTANTE: --listen tcp://0.0.0.0:3000 para escutar em todas as interfaces
+CMD ["serve", "-s", "build", "--listen", "tcp://0.0.0.0:3000"]
 
