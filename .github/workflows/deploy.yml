@@ -1,0 +1,76 @@
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches:
+      - main  # Altere para 'master' se sua branch principal for 'master'
+
+jobs:
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      
+      - name: Create app if not exists
+        run: |
+          if ! flyctl apps list | grep -q "case-solomon-frontend"; then
+            flyctl apps create case-solomon-frontend --org personal || true
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: true
+      
+      - name: Deploy Frontend
+        run: flyctl deploy --remote-only --config fly.toml
+        working-directory: .
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-backend1:
+    name: Deploy Backend 1 (Auth)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      
+      - name: Create app if not exists
+        run: |
+          if ! flyctl apps list | grep -q "case-solomon-backend1-auth"; then
+            flyctl apps create case-solomon-backend1-auth --org personal || true
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: true
+      
+      - name: Deploy Backend 1
+        run: flyctl deploy --remote-only --config backend1-auth/fly.toml
+        working-directory: backend1-auth
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-backend2:
+    name: Deploy Backend 2 (API)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      
+      - name: Create app if not exists
+        run: |
+          if ! flyctl apps list | grep -q "case-solomon-backend2-api"; then
+            flyctl apps create case-solomon-backend2-api --org personal || true
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: true
+      
+      - name: Deploy Backend 2
+        run: flyctl deploy --remote-only --config fly.toml
+        working-directory: backend2-api
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
