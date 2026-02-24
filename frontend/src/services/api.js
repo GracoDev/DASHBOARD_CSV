@@ -21,6 +21,17 @@ export const backend1API = { // quando o frontend acessa o endpoint POST /login 
     });
     return response.data; // retorna a resposta da requisição
   },
+
+  syncWithFile: async (token, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(`${BACKEND1_URL}/sync/upload`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
 };
 
 // API do Backend 2 (Query API)

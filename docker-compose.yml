@@ -1,3 +1,4 @@
+name: dashboard_csv
 services:
   # PostgreSQL Database 
   # Esta seção é responsável por criar o banco de dados PostgreSQL e inicializar o schema e as tabelas
@@ -119,9 +120,6 @@ services:
     container_name: frontend
     ports:
       - "3001:3000"
-    environment:
-      - REACT_APP_BACKEND1_URL=http://localhost:5000
-      - REACT_APP_BACKEND2_URL=http://localhost:8080
     depends_on:
       - backend1-auth
       - backend2-api

@@ -5,7 +5,7 @@ import { backend1API, backend2API } from '../services/api';
 import MetricsCards from './MetricsCards';
 import RevenueChart from './RevenueChart';
 import Filters from './Filters';
-import SyncButton from './SyncButton';
+import CsvUpload from './CsvUpload';
 import './Dashboard.css';
 
 function Dashboard() { // componente Dashboard que exibe os dados e filtros
@@ -26,6 +26,8 @@ function Dashboard() { // componente Dashboard que exibe os dados e filtros
     paymentMethod: '',
   });
   const [chartViewMode, setChartViewMode] = useState('revenue'); // estado inicial do modo de visualização do gráfico ('revenue' ou 'orders') nesse caso 'revenue'
+  const [syncLoading, setSyncLoading] = useState(false); // loading do botão "Executar com dados de exemplo"
+  const [uploadLoading, setUploadLoading] = useState(false); // loading do upload de CSV
 
   const loadData = async (filtersToUse = filters) => { // função para carregar os dados
     setLoading(true);
@@ -69,18 +71,29 @@ function Dashboard() { // componente Dashboard que exibe os dados e filtros
     navigate('/login');
   };
 
-  const handleSync = async () => { // função para sincronizar os dados. acessa o endpoint POST /sync do Backend 1 e inicia a sincronização
+  const handleSyncTest = async () => {
+    setSyncLoading(true);
     try {
-      await backend1API.sync(token); 
-      alert('Sincronização iniciada com sucesso!');
-      // Recarregar dados após sincronização (usando filtros atuais)
-      setTimeout(() => {
-        loadData(filters);
-      }, 2000); // espera 2 segundos após a sincronização para carregar os dados novamente
+      await backend1API.sync(token);
+      alert('Dados de exemplo processados com sucesso!');
+      setTimeout(() => loadData(filters), 2000);
     } catch (err) {
-      alert(
-        err.response?.data?.error || 'Erro ao sincronizar dados. Tente novamente.'
-      );
+      alert(err.response?.data?.error || 'Erro ao executar teste. Tente novamente.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleUpload = async (file) => {
+    setUploadLoading(true);
+    try {
+      await backend1API.syncWithFile(token, file);
+      alert('Arquivo processado com sucesso!');
+      setTimeout(() => loadData(filters), 2000);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao enviar arquivo. Tente novamente.');
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -89,7 +102,6 @@ function Dashboard() { // componente Dashboard que exibe os dados e filtros
       <header className="dashboard-header">
         <h1>Analytics Dashboard</h1>
         <div className="header-actions">
-          <SyncButton onSync={handleSync} />
           <button onClick={handleLogout} className="logout-button">
             Sair
           </button>
@@ -97,6 +109,29 @@ function Dashboard() { // componente Dashboard que exibe os dados e filtros
       </header>
 
       <div className="dashboard-content">
+        <section className="data-source-section">
+          <div className="data-source-card data-source-card--upload">
+            <CsvUpload onUpload={handleUpload} loading={uploadLoading} />
+          </div>
+          <div className="data-source-card data-source-card--sample">
+            <button
+              type="button"
+              className="sync-button sync-button--compact"
+              onClick={handleSyncTest}
+              disabled={syncLoading}
+            >
+              {syncLoading ? 'Executando...' : 'Executar com dados de exemplo'}
+            </button>
+            <a
+              href="/sample/orders.csv"
+              download="orders-exemplo.csv"
+              className="data-source-download-link"
+            >
+              Baixar CSV de exemplo
+            </a>
+          </div>
+        </section>
+
         <Filters 
           filters={tempFilters} 
           onFiltersChange={setTempFilters}

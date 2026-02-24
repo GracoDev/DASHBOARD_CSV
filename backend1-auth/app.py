@@ -4,6 +4,8 @@ from functools import wraps
 import jwt
 import datetime
 import os
+import csv
+import io
 import requests
 
 app = Flask(__name__)
@@ -138,6 +140,70 @@ def sync(): # função que dispara o pipeline de ingestão (sincronização)
     
     except Exception as e: # se houver erro, retorna o erro
         return jsonify({'error': f'Erro ao disparar pipeline: {str(e)}'}), 500
+
+
+def parse_orders_csv(content):
+    """Lê CSV com delimitador ; e colunas order_id, created_at, status, value, payment_method. Retorna lista de dicts no formato do pipeline."""
+    content = content.lstrip('\ufeff')
+    orders = []
+    reader = csv.DictReader(io.StringIO(content), delimiter=';')
+    required = {'order_id', 'created_at', 'status', 'value', 'payment_method'}
+    for row in reader:
+        row = {k.strip(): v for k, v in row.items()}
+        if not row or required - set(row.keys()):
+            continue
+        try:
+            value = float(str(row['value']).replace(',', '.'))
+        except (ValueError, TypeError):
+            continue
+        orders.append({
+            'order_id': row['order_id'].strip(),
+            'created_at': row['created_at'].strip(),
+            'status': row['status'].strip(),
+            'value': value,
+            'payment_method': row['payment_method'].strip(),
+        })
+    return orders
+
+
+@app.route('/sync/upload', methods=['POST'])
+@verify_token
+def sync_upload():
+    """Endpoint protegido para enviar um CSV e disparar o pipeline com esses dados."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'Nenhum arquivo enviado. Use o campo "file" com um CSV.'}), 400
+        f = request.files['file']
+        if not f.filename or not f.filename.lower().endswith('.csv'):
+            return jsonify({'error': 'Envie um arquivo .csv'}), 400
+        content = f.read().decode('utf-8')
+        orders = parse_orders_csv(content)
+        if not orders:
+            return jsonify({'error': 'CSV inválido ou vazio. Use colunas: order_id;created_at;status;value;payment_method (delimitador ;)'}), 400
+        response = requests.post(
+            PIPELINE_URL,
+            json=orders,
+            headers={'Content-Type': 'application/json'},
+            timeout=60,
+        )
+        if response.status_code == 200:
+            return jsonify({
+                'message': 'Pipeline executado com sucesso com seu arquivo CSV',
+                'pipeline_response': response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text,
+            }), 200
+        return jsonify({
+            'error': f'Erro no pipeline: status {response.status_code}',
+            'details': response.text,
+        }), response.status_code
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Timeout ao aguardar resposta do pipeline'}), 504
+    except requests.exceptions.ConnectionError:
+        return jsonify({'error': 'Não foi possível conectar ao pipeline'}), 503
+    except UnicodeDecodeError:
+        return jsonify({'error': 'Arquivo deve ser UTF-8'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Erro ao processar CSV: {str(e)}'}), 500
+
 
 # Executa o serviço na porta 5000 se o arquivo for executado diretamente
 if __name__ == '__main__':

@@ -13,7 +13,16 @@ git clone <https://github.com/GracoDev/CASE-SOLOMON.git>
 cd CASE-SOLOMON
 ```
 
-### 2. Subir os serviços
+### 2. Subir os serviços (construir e subir os containers com Docker)
+
+Na pasta do projeto (ajuste o caminho se o seu for diferente):
+
+```powershell
+cd C:\Users\Master\Desktop\DEV\CASE-SOLOMON\CASE-SOLOMON
+docker compose up --build -d
+```
+
+Ou, se já estiver na pasta do repositório clonado:
 
 ```bash
 docker compose up --build -d

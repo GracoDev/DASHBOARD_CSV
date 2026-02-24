@@ -124,28 +124,59 @@ func triggerHandler(w http.ResponseWriter, r *http.Request) { // função que di
 
 	fmt.Println("\n=== Pipeline disparado via HTTP ===")
 
-	// Executar pipeline
+	// Se o body contiver JSON com array de orders, usa esses dados; senão busca do data-source
+	var orders []Order
+	if r.Body != nil && r.Header.Get("Content-Type") == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(&orders); err == nil && len(orders) > 0 {
+			fmt.Printf("✅ %d pedidos recebidos no body da requisição\n", len(orders))
+			inserted, total, err := runPipelineWithOrders(orders)
+			writeTriggerResponse(w, inserted, total, err)
+			return
+		}
+	}
+
+	// Executar pipeline (busca dados do data-source)
 	inserted, total, err := runPipeline() // executa o processo de ingestão de dados no PostgreSQL
 
-	response := PipelineResponse{ //
-		Success:   err == nil, // sucess = true se err é nil
+	writeTriggerResponse(w, inserted, total, err)
+}
+
+func writeTriggerResponse(w http.ResponseWriter, inserted, total int, err error) {
+	response := PipelineResponse{
+		Success:   err == nil,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-
 	if err != nil {
 		response.Message = fmt.Sprintf("Erro ao executar pipeline: %v", err)
-		w.Header().Set("Content-Type", "application/json") // informa que a resposta será JSIN, definindo o header como application/json
-		w.WriteHeader(http.StatusInternalServerError)      // escreve o status code 500 (Internal Server Error)
-		json.NewEncoder(w).Encode(response)                // cria um encoder json que converte objeto "response" de Go para JSON e escreve em "w" a resposta
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
-
 	response.Message = "Pipeline executado com sucesso"
 	response.Inserted = inserted
 	response.Total = total
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
 
-	w.Header().Set("Content-Type", "application/json") // informa que a resposta será JSON
-	json.NewEncoder(w).Encode(response)                // converte objeto para JSON
+func runPipelineWithOrders(orders []Order) (int, int, error) {
+	fmt.Println("\n💾 Inserindo dados no PostgreSQL...")
+	inserted, err := insertOrders(db, orders)
+	if err != nil {
+		return 0, len(orders), fmt.Errorf("erro ao inserir pedidos: %w", err)
+	}
+	fmt.Printf("✅ %d pedidos inseridos com sucesso\n", inserted)
+	if inserted > 0 {
+		fmt.Println("\n🔄 Chamando transformer para agregar dados...")
+		if err := callTransformer(transformerURL); err != nil {
+			log.Printf("⚠️  Erro ao chamar transformer: %v", err)
+		} else {
+			fmt.Println("✅ Transformer executado com sucesso")
+		}
+	}
+	fmt.Println("\n=== Pipeline concluído com sucesso ===")
+	return inserted, len(orders), nil
 }
 
 func runPipeline() (int, int, error) { // retorna 2 int e 1 error

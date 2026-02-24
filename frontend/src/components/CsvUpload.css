@@ -1,0 +1,115 @@
+.csv-upload-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.csv-upload-title {
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--dark-bg, #1a1a1a);
+}
+
+.csv-upload-hint {
+  margin: 0 0 16px 0;
+  font-size: 0.9em;
+  color: var(--text-gray, #64748b);
+}
+
+.csv-upload-hint code {
+  font-size: 0.85em;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.csv-upload-zone {
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 16px;
+}
+
+.csv-upload-zone--over {
+  border-color: var(--primary-color, #00d47e);
+  background: rgba(0, 212, 126, 0.06);
+}
+
+.csv-upload-zone--has-file {
+  border-color: var(--primary-color, #00d47e);
+  border-style: solid;
+  background: rgba(0, 212, 126, 0.04);
+}
+
+.csv-upload-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.csv-upload-label {
+  display: block;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-gray, #64748b);
+  font-size: 0.95em;
+}
+
+.csv-upload-zone--over .csv-upload-label,
+.csv-upload-zone--has-file .csv-upload-label {
+  color: var(--primary-color, #00d47e);
+}
+
+.csv-upload-filename {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.csv-upload-clear {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 1em;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.csv-upload-clear:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.csv-upload-submit {
+  padding: 10px 24px;
+  background: var(--primary-color);
+  color: var(--dark-bg);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.csv-upload-submit:hover:not(:disabled) {
+  background: var(--primary-hover, #00b86b);
+  transform: translateY(-1px);
+}
+
+.csv-upload-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
